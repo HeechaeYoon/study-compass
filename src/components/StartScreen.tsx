@@ -1,5 +1,6 @@
 import { CaretRight, Star, Tray } from "@phosphor-icons/react";
 
+import { getIllustrationSrc } from "./IllustrationImage";
 import { PrivacyNotice } from "./PrivacyNotice";
 
 type StartScreenProps = {
@@ -28,7 +29,7 @@ export function StartScreen({
           <p>나는 어떤 방식으로 공부할 때 잘 되는 편일까?</p>
         </div>
         <div className="rocket-badge" aria-hidden="true">
-          <img src="/illustrations/hero-rocket.webp" alt="" />
+          <img src={getIllustrationSrc("hero-rocket.webp")} alt="" />
         </div>
         <PrivacyNotice />
         <form
