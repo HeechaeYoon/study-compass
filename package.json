@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource/noto-sans-kr": "^5.2.9",
     "@fontsource/pretendard": "^5.1.1",
     "@phosphor-icons/react": "^2.1.10",
     "html-to-image": "^1.11.13",

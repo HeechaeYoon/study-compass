@@ -1,4 +1,4 @@
-import { CaretRight, RocketLaunch, Star, Tray } from "@phosphor-icons/react";
+import { CaretRight, Star, Tray } from "@phosphor-icons/react";
 
 import { PrivacyNotice } from "./PrivacyNotice";
 
@@ -28,7 +28,7 @@ export function StartScreen({
           <p>나는 어떤 방식으로 공부할 때 잘 되는 편일까?</p>
         </div>
         <div className="rocket-badge" aria-hidden="true">
-          <RocketLaunch size={86} weight="duotone" />
+          <img src="/illustrations/hero-rocket.webp" alt="" />
         </div>
         <PrivacyNotice />
         <form

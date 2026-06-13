@@ -13,7 +13,6 @@ import {
   ListChecks,
   Robot,
   ShieldCheck,
-  Sparkle,
   Star,
   Target,
   WarningCircle,
@@ -40,6 +39,7 @@ import {
 } from "../lib/resultText";
 import type { Result } from "../types";
 import { AxisBars } from "./AxisBars";
+import { IllustrationImage } from "./IllustrationImage";
 import { PromptBuilder } from "./PromptBuilder";
 
 type ResultScreenProps = {
@@ -138,7 +138,7 @@ export function ResultScreen({
             <article className="summary-card" ref={summaryRef}>
               <div className="summary-hero">
                 <div className="summary-hero__icon" aria-hidden="true">
-                  <Sparkle size={42} weight="fill" />
+                  <IllustrationImage name="resultChecklist" className="illustration-image--summary" />
                 </div>
                 <div>
                   <p>현재 답변 기준의 학습 성향은</p>
@@ -146,7 +146,7 @@ export function ResultScreen({
                   <span>{getPrimarySentence(result)}</span>
                 </div>
                 <div className="student-badge" aria-hidden="true">
-                  <GraduationCap size={68} weight="duotone" />
+                  <IllustrationImage name="resultStudent" className="illustration-image--student" />
                 </div>
               </div>
               <p className="summary-note">

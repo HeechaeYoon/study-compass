@@ -1,20 +1,12 @@
 import {
-  BookOpen,
   CaretLeft,
   CaretRight,
   CheckCircle,
-  MagnifyingGlass,
-  PencilSimpleLine,
-  PlayCircle,
-  Smiley,
-  SmileyMeh,
-  SmileyNervous,
-  SmileySad,
-  UsersThree,
 } from "@phosphor-icons/react";
 
 import { LIKERT_OPTIONS } from "../data/questions";
 import type { LikertValue, Question } from "../types";
+import { IllustrationImage, type IllustrationName } from "./IllustrationImage";
 import { ProgressBar } from "./ProgressBar";
 
 type QuestionScreenProps = {
@@ -28,19 +20,19 @@ type QuestionScreenProps = {
 };
 
 const likertIcons = {
-  1: SmileySad,
-  2: SmileyNervous,
-  3: SmileyMeh,
-  4: Smiley,
-} as const;
+  1: "optionLikert1",
+  2: "optionLikert2",
+  3: "optionLikert3",
+  4: "optionLikert4",
+} as const satisfies Record<LikertValue, IllustrationName>;
 
-const scenarioIcons = {
-  A: MagnifyingGlass,
-  B: UsersThree,
-  C: PlayCircle,
-  D: PencilSimpleLine,
-  E: BookOpen,
-} as const;
+const scenarioIcons: Record<string, IllustrationName> = {
+  A: "optionScenarioPlan",
+  B: "optionScenarioStart",
+  C: "optionScenarioSearch",
+  D: "optionScenarioMark",
+  E: "optionScenarioHelp",
+};
 
 export function QuestionScreen({
   question,
@@ -66,7 +58,7 @@ export function QuestionScreen({
       <div className={question.type === "likert" ? "option-list" : "option-list option-list--scenario"}>
         {question.type === "likert"
           ? LIKERT_OPTIONS.map((option) => {
-              const Icon = likertIcons[option.value];
+              const icon = likertIcons[option.value];
               const selected = answer === option.value;
               return (
                 <button
@@ -78,19 +70,20 @@ export function QuestionScreen({
                   aria-pressed={selected}
                   onClick={() => onAnswer(option.value)}
                 >
-                  <span className="option-icon">
-                    {selected ? (
-                      <CheckCircle size={26} weight="fill" />
-                    ) : (
-                      <Icon size={28} weight="duotone" />
+                  <span className="option-illustration">
+                    <IllustrationImage name={icon} className="illustration-image--option" />
+                    {selected && (
+                      <span className="option-check" aria-hidden="true">
+                        <CheckCircle size={18} weight="fill" />
+                      </span>
                     )}
                   </span>
-                  <span>{option.label}</span>
+                  <span className="option-label">{option.label}</span>
                 </button>
               );
             })
           : question.options.map((option) => {
-              const Icon = scenarioIcons[option.id as keyof typeof scenarioIcons] ?? BookOpen;
+              const icon = scenarioIcons[option.id] ?? "optionScenarioMark";
               const selected = answer === option.id;
               return (
                 <button
@@ -102,14 +95,15 @@ export function QuestionScreen({
                   aria-pressed={selected}
                   onClick={() => onAnswer(option.id)}
                 >
-                  <span className="option-icon">
-                    {selected ? (
-                      <CheckCircle size={26} weight="fill" />
-                    ) : (
-                      <Icon size={30} weight="duotone" />
+                  <span className="option-illustration">
+                    <IllustrationImage name={icon} className="illustration-image--option" />
+                    {selected && (
+                      <span className="option-check" aria-hidden="true">
+                        <CheckCircle size={18} weight="fill" />
+                      </span>
                     )}
                   </span>
-                  <span>{option.text}</span>
+                  <span className="option-label">{option.text}</span>
                 </button>
               );
             })}

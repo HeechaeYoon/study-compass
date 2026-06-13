@@ -1,6 +1,7 @@
-import { Copy, Robot, Sparkle } from "@phosphor-icons/react";
+import { Copy, Sparkle } from "@phosphor-icons/react";
 
 import type { PromptInputs } from "../lib/promptBuilder";
+import { IllustrationImage } from "./IllustrationImage";
 
 type PromptBuilderProps = {
   inputs: PromptInputs;
@@ -15,8 +16,8 @@ export function PromptBuilder({ inputs, prompt, onInputsChange, onCopy }: Prompt
   return (
     <div className="prompt-panel">
       <div className="panel-heading">
-        <span className="panel-icon">
-          <Robot size={30} weight="duotone" />
+        <span className="panel-icon panel-icon--image">
+          <IllustrationImage name="promptRobot" className="illustration-image--panel" />
         </span>
         <div>
           <h3>AI 챗봇에게 이렇게 말해보세요!</h3>
