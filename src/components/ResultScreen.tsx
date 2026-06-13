@@ -25,17 +25,19 @@ import {
   AXIS_NAMES,
   LEARNING_TYPE_CONTENT,
   LEARNING_TYPE_NAMES,
+  type LearningTypeContent,
 } from "../data/learningTypes";
 import type { PromptInputs } from "../lib/promptBuilder";
 import { buildAiPrompt } from "../lib/promptBuilder";
 import {
   buildDetailedReport,
+  buildDetailedReportModel,
   getCautionSummary,
-  getDisplayName,
   getGrowthSummary,
   getMainGrowthAxis,
   getPrimarySentence,
   getStrengthSummary,
+  type DetailedReportModel,
 } from "../lib/resultText";
 import type { Result } from "../types";
 import { AxisBars } from "./AxisBars";
@@ -95,6 +97,7 @@ export function ResultScreen({
   const [promptInputs, setPromptInputs] = useState<PromptInputs>({});
   const content = LEARNING_TYPE_CONTENT[result.primaryType];
   const detailedReport = useMemo(() => buildDetailedReport(result), [result]);
+  const reportModel = useMemo(() => buildDetailedReportModel(result), [result]);
   const prompt = useMemo(() => buildAiPrompt(result, promptInputs), [promptInputs, result]);
   const growthAxis = getMainGrowthAxis(result);
 
@@ -126,6 +129,11 @@ export function ResultScreen({
       </aside>
       <div className="result-main">
         <div className="result-top-actions">
+          {activeTab === "summary" && (
+            <button className="primary-button result-export-button" type="button" onClick={onExportImage}>
+              <DownloadSimple size={18} weight="bold" /> 결과 이미지 저장
+            </button>
+          )}
           <button className="secondary-button secondary-button--compact" type="button" onClick={onRestart}>
             다시 진단
           </button>
@@ -135,56 +143,9 @@ export function ResultScreen({
         </div>
         {activeTab === "summary" && (
           <div className="summary-stack">
-            <article className="summary-card" ref={summaryRef}>
-              <div className="summary-hero">
-                <div className="summary-hero__icon" aria-hidden="true">
-                  <IllustrationImage name="resultChecklist" className="illustration-image--summary" />
-                </div>
-                <div>
-                  <p>현재 답변 기준의 학습 성향은</p>
-                  <h2 id="result-title">{LEARNING_TYPE_NAMES[result.primaryType]}</h2>
-                  <span>{getPrimarySentence(result)}</span>
-                </div>
-                <div className="student-badge" aria-hidden="true">
-                  <IllustrationImage name="resultStudent" className="illustration-image--student" />
-                </div>
-              </div>
-              <p className="summary-note">
-                {content.summary} 결과는 고정된 성격이나 능력이 아니라, 다음 학습전략을
-                고르는 데 도움을 주기 위한 참고 자료입니다.
-              </p>
-              <AxisBars scores={result.axisScores} labels={result.axisLabels} compact />
-              <p className="basis-note">위 결과는 현재 응답 기준의 참고 자료입니다.</p>
-            </article>
+            <ResultSummaryCard result={result} content={content} titleId="result-title" />
 
-            <div className="summary-grid">
-              <InfoTile
-                icon={Star}
-                title="나의 강점"
-                body={getStrengthSummary(result)}
-                tone="blue"
-              />
-              <InfoTile
-                icon={WarningCircle}
-                title="주의할 점"
-                body={getCautionSummary(result)}
-                tone="warm"
-              />
-              <InfoTile
-                icon={BookOpenText}
-                title="추천 학습법"
-                body={content.recommendedMethods.slice(0, 3).join(", ")}
-                tone="green"
-              />
-            </div>
-
-            <article className="mission-strip">
-              <div>
-                <span>이번에 키워볼 성장 포인트</span>
-                <strong>{getGrowthSummary(result)}</strong>
-              </div>
-              <Target size={42} weight="duotone" />
-            </article>
+            <ResultSummaryHighlights result={result} content={content} />
             <button className="primary-button primary-button--wide" type="button" onClick={() => setActiveTab("report")}>
               자세히 보기
             </button>
@@ -192,19 +153,12 @@ export function ResultScreen({
         )}
 
         {activeTab === "report" && (
-          <Panel title={getDisplayName(result)} icon={FileText}>
-            <p className="type-pill">대표 성향: {content.name}</p>
-            <p>{content.description}</p>
-            <p className="safe-copy">
-              이 결과는 현재 답변 기준의 참고 자료입니다. 고정된 성격이나 능력이 아니라,
-              지금의 학습 습관과 선호를 바탕으로 한 코칭 출발점입니다.
-            </p>
-            <div className="report-text">
-              <pre>{detailedReport}</pre>
-            </div>
-            <button className="primary-button" type="button" onClick={() => onCopy(detailedReport, "상세 리포트")}>
-              <Copy size={18} weight="bold" /> 상세 리포트 복사
-            </button>
+          <Panel title={reportModel.title} icon={FileText}>
+            <DetailedReportView
+              report={reportModel}
+              detailedReport={detailedReport}
+              onCopy={onCopy}
+            />
           </Panel>
         )}
 
@@ -320,7 +274,208 @@ export function ResultScreen({
           </Panel>
         )}
       </div>
+      <div className="export-capture-layer" aria-hidden="true">
+        <div className="summary-export-card" ref={summaryRef}>
+          <ResultSummaryCard result={result} content={content} />
+          <ResultSummaryHighlights result={result} content={content} />
+        </div>
+      </div>
     </section>
+  );
+}
+
+function ResultSummaryCard({
+  result,
+  content,
+  summaryRef,
+  titleId,
+}: {
+  result: Result;
+  content: LearningTypeContent;
+  summaryRef?: RefObject<HTMLDivElement | null>;
+  titleId?: string;
+}) {
+  return (
+    <article className="summary-card" ref={summaryRef}>
+      <div className="summary-hero">
+        <div className="summary-hero__icon" aria-hidden="true">
+          <IllustrationImage name="resultChecklist" className="illustration-image--summary" />
+        </div>
+        <div>
+          <p>현재 답변 기준의 학습 성향은</p>
+          <h2 id={titleId}>{LEARNING_TYPE_NAMES[result.primaryType]}</h2>
+          <span>{getPrimarySentence(result)}</span>
+        </div>
+        <div className="student-badge" aria-hidden="true">
+          <IllustrationImage name="resultStudent" className="illustration-image--student" />
+        </div>
+      </div>
+      <p className="summary-note">
+        {content.summary} 결과는 고정된 성격이나 능력이 아니라, 다음 학습전략을 고르는 데
+        도움을 주기 위한 참고 자료입니다.
+      </p>
+      <AxisBars scores={result.axisScores} labels={result.axisLabels} compact />
+      <p className="basis-note">위 결과는 현재 응답 기준의 참고 자료입니다.</p>
+    </article>
+  );
+}
+
+function ResultSummaryHighlights({
+  result,
+  content,
+}: {
+  result: Result;
+  content: LearningTypeContent;
+}) {
+  return (
+    <>
+      <div className="summary-grid">
+        <InfoTile icon={Star} title="나의 강점" body={getStrengthSummary(result)} tone="blue" />
+        <InfoTile icon={WarningCircle} title="주의할 점" body={getCautionSummary(result)} tone="warm" />
+        <InfoTile
+          icon={BookOpenText}
+          title="추천 학습법"
+          body={content.recommendedMethods.slice(0, 3).join(", ")}
+          tone="green"
+        />
+      </div>
+
+      <article className="mission-strip">
+        <div>
+          <span>이번에 키워볼 성장 포인트</span>
+          <strong>{getGrowthSummary(result)}</strong>
+        </div>
+        <Target size={42} weight="duotone" />
+      </article>
+    </>
+  );
+}
+
+function DetailedReportView({
+  report,
+  detailedReport,
+  onCopy,
+}: {
+  report: DetailedReportModel;
+  detailedReport: string;
+  onCopy: (text: string, label: string) => void;
+}) {
+  return (
+    <div className="detailed-report">
+      <section className="report-hero">
+        <div>
+          <p className="type-pill">대표 성향: {report.primaryName}</p>
+          <h3>{report.primaryName}</h3>
+          <p>{report.overview}</p>
+          {report.secondaryNote && <p className="report-secondary-note">{report.secondaryNote}</p>}
+        </div>
+        <div className="report-method-note">
+          <ShieldCheck size={26} weight="duotone" />
+          <p>{report.methodNote}</p>
+        </div>
+      </section>
+
+      <section className="report-evidence" aria-label="진단 근거">
+        {report.evidenceCards.map((item) => (
+          <div className="report-evidence__item" key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <p>{item.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="report-section">
+        <div className="report-section-heading">
+          <Star size={24} weight="duotone" />
+          <div>
+            <h3>잘 작동하는 강점</h3>
+            <p>{report.strengthSummary}</p>
+          </div>
+        </div>
+        <p>{report.typeGuide.strengthDetail}</p>
+      </section>
+
+      <section className="report-section">
+        <div className="report-section-heading">
+          <WarningCircle size={24} weight="duotone" />
+          <div>
+            <h3>조심하면 더 좋아지는 지점</h3>
+            <p>{report.cautionSummary}</p>
+          </div>
+        </div>
+        <p>{report.typeGuide.cautionDetail}</p>
+      </section>
+
+      <section className="report-section">
+        <div className="report-section-heading">
+          <ChartBar size={24} weight="duotone" />
+          <div>
+            <h3>5개 축별 심층 해석</h3>
+            <p>점수는 현재 응답에서 해당 전략이 얼마나 자주 드러났는지를 보여줍니다.</p>
+          </div>
+        </div>
+        <div className="report-axis-list">
+          {report.axisInsights.map((axis) => (
+            <article className="report-axis-row" key={axis.axis}>
+              <div className="report-axis-score">
+                <strong>{axis.score}</strong>
+                <span>점</span>
+              </div>
+              <div className="report-axis-body">
+                <div className="report-axis-title">
+                  <h4>{axis.name}</h4>
+                  <span className={`axis-label axis-label--${axis.label.replace(" ", "-")}`}>
+                    {axis.label}
+                  </span>
+                </div>
+                <p className="report-axis-description">{axis.description}</p>
+                <p>{axis.meaning}</p>
+                <strong>{axis.action}</strong>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="report-section report-section--growth">
+        <div className="report-section-heading">
+          <Target size={24} weight="duotone" />
+          <div>
+            <h3>오늘 바로 써볼 학습 처방</h3>
+            <p>{report.typeGuide.coachFocus}</p>
+          </div>
+        </div>
+        <ol className="report-routine-list">
+          {report.typeGuide.routine.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="report-section">
+        <div className="report-section-heading">
+          <ListChecks size={24} weight="duotone" />
+          <div>
+            <h3>성장 미션과 점검 질문</h3>
+            <p>{report.growthFocus}</p>
+          </div>
+        </div>
+        <p className="report-mission-text">{report.growthMission}</p>
+        <ul className="report-question-list">
+          {report.selfCheckQuestions.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="report-copy-row">
+        <p>공유나 기록이 필요할 때는 화면 내용을 텍스트 리포트로 복사할 수 있어요.</p>
+        <button className="primary-button" type="button" onClick={() => onCopy(detailedReport, "상세 리포트")}>
+          <Copy size={18} weight="bold" /> 상세 리포트 복사
+        </button>
+      </div>
+    </div>
   );
 }
 
