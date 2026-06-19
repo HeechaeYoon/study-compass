@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode, type RefObject } from "react";
 import {
-  BookOpenText,
   ChartBar,
   CheckCircle,
   Copy,
@@ -18,11 +17,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 
-import { AXES } from "../data/questions";
 import {
-  AXIS_DESCRIPTIONS,
-  AXIS_LABEL_MESSAGES,
-  AXIS_NAMES,
   LEARNING_TYPE_CONTENT,
   LEARNING_TYPE_NAMES,
   type LearningTypeContent,
@@ -32,11 +27,7 @@ import { buildAiPrompt } from "../lib/promptBuilder";
 import {
   buildDetailedReport,
   buildDetailedReportModel,
-  getCautionSummary,
-  getGrowthSummary,
-  getMainGrowthAxis,
   getPrimarySentence,
-  getStrengthSummary,
   type DetailedReportModel,
 } from "../lib/resultText";
 import type { Result } from "../types";
@@ -58,29 +49,14 @@ type ResultScreenProps = {
 type ResultTab =
   | "summary"
   | "report"
-  | "axes"
-  | "strategy"
-  | "avoid"
-  | "mission"
   | "prompt"
   | "save";
 
 const tabs: { id: ResultTab; label: string; icon: typeof House }[] = [
   { id: "summary", label: "요약", icon: House },
-  { id: "report", label: "성향 리포트", icon: FileText },
-  { id: "axes", label: "축별 해석", icon: ChartBar },
-  { id: "strategy", label: "학습 전략", icon: Lightbulb },
-  { id: "avoid", label: "피하면 좋은 방식", icon: WarningCircle },
-  { id: "mission", label: "성장 미션", icon: Target },
+  { id: "report", label: "전체 리포트", icon: FileText },
   { id: "prompt", label: "AI 프롬프트", icon: Robot },
   { id: "save", label: "저장/내보내기", icon: FloppyDisk },
-];
-
-const avoidMethods = [
-  "계획만 오래 세우고 시작을 미루는 방식",
-  "답만 확인하고 왜 그런지 점검하지 않는 방식",
-  "모르는 부분을 표시하지 않은 채 오래 버티는 방식",
-  "AI 답변을 그대로 외우고 확인문제를 풀지 않는 방식",
 ];
 
 export function ResultScreen({
@@ -99,7 +75,6 @@ export function ResultScreen({
   const detailedReport = useMemo(() => buildDetailedReport(result), [result]);
   const reportModel = useMemo(() => buildDetailedReportModel(result), [result]);
   const prompt = useMemo(() => buildAiPrompt(result, promptInputs), [promptInputs, result]);
-  const growthAxis = getMainGrowthAxis(result);
 
   return (
     <section className="result-shell" aria-labelledby="result-title">
@@ -145,9 +120,9 @@ export function ResultScreen({
           <div className="summary-stack">
             <ResultSummaryCard result={result} content={content} titleId="result-title" />
 
-            <ResultSummaryHighlights result={result} content={content} />
+            <ResultSummaryHighlights content={content} />
             <button className="primary-button primary-button--wide" type="button" onClick={() => setActiveTab("report")}>
-              자세히 보기
+              전체 리포트 보기
             </button>
           </div>
         )}
@@ -159,82 +134,6 @@ export function ResultScreen({
               detailedReport={detailedReport}
               onCopy={onCopy}
             />
-          </Panel>
-        )}
-
-        {activeTab === "axes" && (
-          <Panel title="5개 축 해석" icon={ChartBar}>
-            <AxisBars scores={result.axisScores} labels={result.axisLabels} />
-            <div className="axis-detail-list">
-              {AXES.map((axis) => (
-                <article className="axis-detail" key={axis}>
-                  <span className="axis-detail__badge">{result.axisLabels[axis]}</span>
-                  <div>
-                    <h3>{AXIS_NAMES[axis]}</h3>
-                    <p>{AXIS_DESCRIPTIONS[axis]}</p>
-                    <small>{AXIS_LABEL_MESSAGES[result.axisLabels[axis]]}</small>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === "strategy" && (
-          <Panel title="나에게 맞을 가능성이 높은 학습 전략" icon={Lightbulb}>
-            <div className="strategy-grid">
-              {content.recommendedMethods.map((method) => (
-                <article className="strategy-card" key={method}>
-                  <CheckCircle size={22} weight="fill" />
-                  <span>{method}</span>
-                </article>
-              ))}
-            </div>
-            <div className="soft-callout">
-              <ListChecks size={28} weight="duotone" />
-              <p>계획 - 실행 - 점검의 순환을 만들면 더 효과적이에요.</p>
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === "avoid" && (
-          <Panel title="피하면 좋은 학습 방식" icon={WarningCircle}>
-            <p>
-              아래 내용은 단점 목록이 아니라, 현재 답변 기준에서 공부가 더 쉬워지도록 조심해볼
-              지점입니다.
-            </p>
-            <div className="avoid-list">
-              {[...content.cautions, ...avoidMethods].map((method) => (
-                <article className="avoid-card" key={method}>
-                  <ShieldCheck size={22} weight="duotone" />
-                  <span>{method}</span>
-                </article>
-              ))}
-            </div>
-          </Panel>
-        )}
-
-        {activeTab === "mission" && (
-          <Panel title="다음 수업 성장 미션" icon={Target}>
-            <div className="growth-focus">
-              <span>{AXIS_NAMES[growthAxis]}</span>
-              <h3>{content.growthMission}</h3>
-              <p>{AXIS_DESCRIPTIONS[growthAxis]}</p>
-            </div>
-            <div className="mission-steps">
-              <article>
-                <strong>1</strong>
-                <span>오늘 할 목표 1개만 정하기</span>
-              </article>
-              <article>
-                <strong>2</strong>
-                <span>30분 안에 해볼 순서 만들기</span>
-              </article>
-              <article>
-                <strong>3</strong>
-                <span>끝나고 질문 1개 남기기</span>
-              </article>
-            </div>
           </Panel>
         )}
 
@@ -277,7 +176,7 @@ export function ResultScreen({
       <div className="export-capture-layer" aria-hidden="true">
         <div className="summary-export-card" ref={summaryRef}>
           <ResultSummaryCard result={result} content={content} />
-          <ResultSummaryHighlights result={result} content={content} />
+          <ResultSummaryHighlights content={content} />
         </div>
       </div>
     </section>
@@ -320,34 +219,12 @@ function ResultSummaryCard({
   );
 }
 
-function ResultSummaryHighlights({
-  result,
-  content,
-}: {
-  result: Result;
-  content: LearningTypeContent;
-}) {
+function ResultSummaryHighlights({ content }: { content: LearningTypeContent }) {
   return (
-    <>
-      <div className="summary-grid">
-        <InfoTile icon={Star} title="나의 강점" body={getStrengthSummary(result)} tone="blue" />
-        <InfoTile icon={WarningCircle} title="주의할 점" body={getCautionSummary(result)} tone="warm" />
-        <InfoTile
-          icon={BookOpenText}
-          title="추천 학습법"
-          body={content.recommendedMethods.slice(0, 3).join(", ")}
-          tone="green"
-        />
-      </div>
-
-      <article className="mission-strip">
-        <div>
-          <span>이번에 키워볼 성장 포인트</span>
-          <strong>{getGrowthSummary(result)}</strong>
-        </div>
-        <Target size={42} weight="duotone" />
-      </article>
-    </>
+    <div className="summary-grid">
+      <InfoTile icon={Star} title="핵심 강점" body={content.strengths[0]} tone="blue" />
+      <InfoTile icon={Target} title="오늘 실행할 성장 행동" body={content.growthMission} tone="green" />
+    </div>
   );
 }
 
@@ -405,6 +282,24 @@ function DetailedReportView({
           </div>
         </div>
         <p>{report.typeGuide.cautionDetail}</p>
+      </section>
+
+      <section className="report-section">
+        <div className="report-section-heading">
+          <Lightbulb size={24} weight="duotone" />
+          <div>
+            <h3>나에게 맞을 가능성이 높은 학습 전략</h3>
+            <p>현재 답변 기준에서 바로 시도하기 좋은 방법입니다.</p>
+          </div>
+        </div>
+        <div className="strategy-grid">
+          {report.recommendedMethods.map((method) => (
+            <article className="strategy-card" key={method}>
+              <CheckCircle size={22} weight="fill" />
+              <span>{method}</span>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="report-section">

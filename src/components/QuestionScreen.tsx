@@ -50,9 +50,6 @@ export function QuestionScreen({
     <section className="question-card" aria-labelledby="question-title">
       <ProgressBar current={currentIndex + 1} total={total} />
       <div className="question-body">
-        <span className="question-kicker">
-          {question.type === "likert" ? "동의 정도 선택형" : "상황 선택형"}
-        </span>
         <h2 id="question-title">{question.text}</h2>
       </div>
       <div className={question.type === "likert" ? "option-list" : "option-list option-list--scenario"}>

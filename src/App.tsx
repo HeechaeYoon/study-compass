@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   EnvelopeSimple,
   House,
@@ -29,6 +29,8 @@ type ConfirmState =
   | { type: "clear" }
   | null;
 
+const AUTO_ADVANCE_DELAY_MS = 250;
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("start");
   const [nickname, setNickname] = useState("");
@@ -41,10 +43,19 @@ export default function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const summaryRef = useRef<HTMLDivElement | null>(null);
+  const autoAdvanceTimerRef = useRef<number | null>(null);
+
+  const clearAutoAdvanceTimer = useCallback(() => {
+    if (autoAdvanceTimerRef.current === null) return;
+    window.clearTimeout(autoAdvanceTimerRef.current);
+    autoAdvanceTimerRef.current = null;
+  }, []);
 
   useEffect(() => {
     setSavedResults(loadSavedResults());
   }, []);
+
+  useEffect(() => clearAutoAdvanceTimer, [clearAutoAdvanceTimer]);
 
   useEffect(() => {
     if (!toast) return;
@@ -60,13 +71,15 @@ export default function App() {
   }, [screen]);
 
   const startDiagnosis = () => {
+    clearAutoAdvanceTimer();
     setAnswers({});
     setQuestionIndex(0);
     setResult(null);
     setScreen("question");
   };
 
-  const moveNext = () => {
+  const moveNext = useCallback(() => {
+    clearAutoAdvanceTimer();
     if (questionIndex < QUESTIONS_16.length - 1) {
       setQuestionIndex((index) => index + 1);
       return;
@@ -79,6 +92,33 @@ export default function App() {
     } catch (error) {
       setToast(error instanceof Error ? error.message : "응답을 확인해주세요.");
     }
+  }, [answers, clearAutoAdvanceTimer, nickname, questionIndex]);
+
+  const handleAnswer = (value: LikertValue | string) => {
+    clearAutoAdvanceTimer();
+    setAnswers((current) => ({ ...current, [question.id]: value }));
+
+    if (questionIndex === QUESTIONS_16.length - 1) return;
+
+    autoAdvanceTimerRef.current = window.setTimeout(() => {
+      setQuestionIndex((index) => (index === questionIndex ? index + 1 : index));
+      autoAdvanceTimerRef.current = null;
+    }, AUTO_ADVANCE_DELAY_MS);
+  };
+
+  const movePrev = () => {
+    clearAutoAdvanceTimer();
+    setQuestionIndex((index) => Math.max(0, index - 1));
+  };
+
+  const openSavedResults = () => {
+    clearAutoAdvanceTimer();
+    setScreen("saved");
+  };
+
+  const goHome = () => {
+    clearAutoAdvanceTimer();
+    setScreen("start");
   };
 
   const handleCopy = async (text: string, label: string) => {
@@ -145,7 +185,7 @@ export default function App() {
             savedCount={savedResults.length}
             onNicknameChange={setNickname}
             onStart={startDiagnosis}
-            onOpenSaved={() => setScreen("saved")}
+            onOpenSaved={openSavedResults}
           />
         )}
 
@@ -155,8 +195,8 @@ export default function App() {
             currentIndex={questionIndex}
             total={QUESTIONS_16.length}
             answer={answers[question.id]}
-            onAnswer={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))}
-            onPrev={() => setQuestionIndex((index) => Math.max(0, index - 1))}
+            onAnswer={handleAnswer}
+            onPrev={movePrev}
             onNext={moveNext}
           />
         )}
@@ -167,7 +207,7 @@ export default function App() {
             savedCount={savedResults.length}
             summaryRef={summaryRef}
             onRestart={startDiagnosis}
-            onOpenSaved={() => setScreen("saved")}
+            onOpenSaved={openSavedResults}
             onSave={handleSave}
             onCopy={handleCopy}
             onExportImage={handleExportImage}
@@ -190,7 +230,7 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        <button type="button" onClick={() => setScreen("start")}>
+        <button type="button" onClick={goHome}>
           <House size={20} weight="duotone" /> 홈
         </button>
         <button type="button" onClick={() => setGuideOpen(true)}>
